@@ -3,6 +3,7 @@ import mongoose, { Schema } from 'mongoose';
 import httpStatus from 'http-status';
 import bcrypt from 'bcrypt-nodejs';
 import APIError from '../helpers/APIError';
+import config from '../../config/config';
 
 /**
  * User Schema
@@ -76,6 +77,9 @@ const UserSchema = new mongoose.Schema({
     name: {
       type: String
     }
+  },
+  topics: {
+    type: Array
   },
   emailNotiicationSettings: {
     unsubscribedFromThreads: {
@@ -172,4 +176,4 @@ UserSchema.statics = {
 /**
  * @typedef User
  */
-export default mongoose.model('User', UserSchema);
+export default mongoose.model(`${config.mongo.collectionPrefix}User`, UserSchema);

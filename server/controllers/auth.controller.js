@@ -1,16 +1,22 @@
 import _ from 'lodash';
-import FacebookTokenStrategy from 'passport-facebook-token';
 import passport from 'passport';
 import jwt from 'jsonwebtoken';
 import httpStatus from 'http-status';
+import ReCAPTCHA from 'recaptcha2';
 import APIError from '../helpers/APIError';
 import config from '../../config/config';
 import User from '../models/user.model';
 import { signS3 } from '../helpers/s3';
-import { sendError, ErrorType } from '../helpers/events.helper';
 
 const http = require('http'); // For mailchimp api call
 require('dotenv').config();
+
+const reCaptcha = new ReCAPTCHA({
+  siteKey: config.recaptcha.siteKey,
+  secretKey: config.recaptcha.secretKey
+});
+
+const REGEX_CASE_INSENSITIVE_MOD = 'i';
 
 /**
  * @swagger
@@ -28,38 +34,6 @@ passport.deserializeUser((id, done) => {
     done(err, user);
   });
 });
-
-// TODO: add swagger doc
-
-passport.use(new FacebookTokenStrategy(
-  {
-    clientID: config.facebook.clientID,
-    clientSecret: config.facebook.clientSecret
-  },
-  (accessToken, refreshToken, profile, done) => {
-    const username = profile.emails[0].value || profile.id;
-    User.findOne({ username })
-      .exec()
-      .then((user) => {
-        if (!user) {
-          const newUser = new User();
-          newUser.username = username;
-          newUser.facebook = {
-            email: profile.emails[0].value,
-            name: `${profile.name.givenName} ${profile.name.familyName}`,
-            id: profile.id,
-            token: accessToken
-          };
-          return newUser.save().then(userSaved => done(null, userSaved));
-        }
-        return done(null, user);
-      })
-      .catch((err) => {
-          err = new APIError('Authentication error', httpStatus.UNAUTHORIZED, true); //eslint-disable-line
-        return done(err);
-      });
-  }
-));
 
 /**
  * @swagger
@@ -91,9 +65,11 @@ passport.use(new FacebookTokenStrategy(
 function login(req, res, next) {
   const { username } = req.body;
   const { password } = req.body;
-
   User.findOne({
-    $or: [{ username }, { email: username }]
+    $or: [
+      { username: new RegExp(username, REGEX_CASE_INSENSITIVE_MOD) },
+      { email: new RegExp(username, REGEX_CASE_INSENSITIVE_MOD) }
+    ]
   })
     .exec()
     .then((user) => {
@@ -119,7 +95,7 @@ function loginWithEmail(req, res, next) {
   const { email } = req.body;
   const { password } = req.body;
 
-  User.findOne({ email })
+  User.findOne({ email: new RegExp(email, REGEX_CASE_INSENSITIVE_MOD) })
     .exec()
     .then((user) => {
       if (!user) return res.status(404).json({ message: 'User not found.' });
@@ -176,7 +152,6 @@ function register(req, res, next) {
   const { username } = req.body;
   const { password } = req.body;
   const newsletterSignup = req.body.newsletter;
-
   if (!username) {
     let err = new APIError('Username is required to register.', httpStatus.UNAUTHORIZED, true); //eslint-disable-line
     return next(err);
@@ -186,14 +161,19 @@ function register(req, res, next) {
     let err = new APIError('Password is required to register.', httpStatus.UNAUTHORIZED, true); //eslint-disable-line
     return next(err);
   }
-
   const { email } = req.body;
   const queryIfEmail = {
-    $or: [{ username }, { email }]
+    $or: [
+      { username: new RegExp(username, REGEX_CASE_INSENSITIVE_MOD) },
+      { email: new RegExp(email, REGEX_CASE_INSENSITIVE_MOD) }
+    ]
   };
 
   const queryIfEmailMissing = {
-    $or: [{ username }, { email: username }]
+    $or: [
+      { username: new RegExp(username, REGEX_CASE_INSENSITIVE_MOD) },
+      { email: username }
+    ]
   };
 
   // We do this so people can't share an email on either field, username or email:
@@ -226,13 +206,6 @@ function register(req, res, next) {
       });
       mailchimpReq.on('error', (e) => {
         console.log(`mailchimp error: ${e}`);
-        sendError({
-          userName: username,
-          errorType: ErrorType.OTHER,
-          errorData: {
-            message: e
-          }
-        });
         const error = new APIError('Mailchimp error', httpStatus.UNAUTHORIZED, true);
         console.log('newsletter error', error);
         // return next(error); // This will prevent registration which we dont want
@@ -242,13 +215,6 @@ function register(req, res, next) {
     }
   } catch (e) {
     console.log(`mailchimp error: ${e}`);
-    sendError({
-      userName: username,
-      errorType: ErrorType.OTHER,
-      errorData: {
-        message: e
-      }
-    });
     const error = new APIError('Mailchimp error', httpStatus.UNAUTHORIZED, true);
     console.log('newsletter error2', error);
     // return next(error); // This will prevent registration which we dont want
@@ -313,7 +279,7 @@ function signS3AvatarUpload(req, res, next) {
       return next(error);
     }
   };
-  signS3('sd-profile-pictures', fileType, newFileName, cbSuccess, cbError);
+  signS3(config.aws.profilePicBucketName, fileType, newFileName, cbSuccess, cbError);
 }
 
 /**
@@ -341,6 +307,18 @@ function getRandomNumber(req, res) {
   });
 }
 
+function validateRecaptcha(req, res) {
+  const { recaptchaResponse } = req.body;
+  reCaptcha.validate(recaptchaResponse)
+    .then(() => res.status(200).json({
+      formSubmit: true
+    }))
+    .catch(errorCodes => res.status(401).json({
+      formSubmit: false,
+      errors: reCaptcha.translateErrors(errorCodes)
+    }));
+}
+
 export default {
   login,
   loginWithEmail,
@@ -348,5 +326,6 @@ export default {
   register,
   socialAuth,
   signS3,
-  signS3AvatarUpload
+  signS3AvatarUpload,
+  validateRecaptcha
 };

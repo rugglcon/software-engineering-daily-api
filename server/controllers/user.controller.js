@@ -64,9 +64,6 @@ function get(req, res) {
   return res.json(user);
 }
 
-// Bucket name:
-// sd-profile-pictures
-
 /**
  * Update existing user
  * @property {string} req.body.username - The username of user.
@@ -104,8 +101,7 @@ function update(req, res, next) {
       const newValues = _.pick(req.body, User.updatableFields);
       Object.assign(user, newValues);
       if (avatarWasSet) {
-        // This should be pulled from utils:
-        const S3_BUCKET = 'sd-profile-pictures';
+        const S3_BUCKET = config.aws.profilePicBucketName;
         user.avatarUrl = `https://${S3_BUCKET}.s3.amazonaws.com/${user._id}`;
       }
       return user.save().then((newUser) => {
@@ -189,7 +185,7 @@ function requestPasswordReset(req, res, next) {
         // TODO: throttle how many emails we send to same email per time.
         const msg = {
           to: email,
-          from: 'no-reply@softwaredaily.com',
+          from: config.email.fromAddress,
           subject: 'Password reset email',
           text: `Reset your password here ${config.baseUrl}/#/regain-account/${secretKey}/${
             resetPass._id

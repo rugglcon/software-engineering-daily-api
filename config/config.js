@@ -9,9 +9,7 @@ const envVarsSchema = Joi.object({
     .allow(['development', 'production', 'test', 'provision'])
     .default('development'),
   BASE_URL: Joi.string()
-    // .allow(['https://www.softwaredaily.com', 'http://localhost:4040'])
     .default('https://www.softwaredaily.com'),
-  EVENTS_API_BASE_URL: Joi.string().required(),
   SEND_GRID_KEY: Joi.string().required(),
   PORT: Joi.number()
     .default(4040),
@@ -31,14 +29,20 @@ const envVarsSchema = Joi.object({
     .description('Mongo DB test host url'),
   MONGO_PORT: Joi.number()
     .default(27017),
-  FACEBOOK_ID: Joi.string().required()
-    .description('Facbook application id'),
-  FACEBOOK_SECRET: Joi.string().required()
-    .description('Facebook application secret'),
+  MONGO_COLLECTION_PREFIX: Joi.string().default('')
+    .description('Prefix used in all collection names'),
   MAILCHIMP_KEY: Joi.string().required()
     .description('Mailchimp API key'),
   MAILCHIMP_LIST_ID: Joi.string().required()
-    .description('Mailchimp list id')
+    .description('Mailchimp list id'),
+  RECAPTCHA_SITE_KEY: Joi.string().required()
+    .description('Recaptcha site key'),
+  RECAPTCHA_SECRET_KEY: Joi.string().required()
+    .description('Recaptcha secret key'),
+  AWS_PROFILE_PIC_BUCKET_NAME: Joi.string().required()
+    .description('S3 bucket for storing profile pictures'),
+  EMAIL_FROM_ADDRESS: Joi.string().required()
+    .description('Email address listed in FROM section of emails')
 }).unknown()
   .required();
 
@@ -55,19 +59,25 @@ const config = {
   mongooseDebug: envVars.MONGOOSE_DEBUG,
   adFreeURL: envVars.AD_FREE_URL,
   jwtSecret: envVars.JWT_SECRET,
-  eventStreamUrl: envVars.EVENTS_API_BASE_URL,
   mongo: {
     host: envVars.MONGO_HOST,
     test: envVars.MONGO_HOST_TEST,
-    port: envVars.MONGO_PORT
-  },
-  facebook: {
-    clientID: envVars.FACEBOOK_ID,
-    clientSecret: envVars.FACEBOOK_SECRET
+    port: envVars.MONGO_PORT,
+    collectionPrefix: envVars.MONGO_COLLECTION_PREFIX ? `${envVars.MONGO_COLLECTION_PREFIX}-` : ''
   },
   mailchimp: {
     mailchimpKey: envVars.MAILCHIMP_KEY,
     mailchimpList: envVars.MAILCHIMP_LIST_ID
+  },
+  recaptcha: {
+    siteKey: envVars.RECAPTCHA_SITE_KEY,
+    secretKey: envVars.RECAPTCHA_SECRET_KEY
+  },
+  aws: {
+    profilePicBucketName: envVars.AWS_PROFILE_PIC_BUCKET_NAME
+  },
+  email: {
+    fromAddress: envVars.EMAIL_FROM_ADDRESS
   }
 };
 

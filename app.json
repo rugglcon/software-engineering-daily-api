@@ -3,6 +3,51 @@
   "scripts": {
   },
   "env": {
+    "JWT_SECRET": {
+      "required": true
+    },
+    "MONGO_HOST": {
+      "required": true
+    },
+    "MONGO_HOST_TEST": {
+      "required": true
+    },
+    "AWS_ACCESS_KEY_ID": {
+      "required": true
+    },
+    "AWS_SECRET_ACCESS_KEY": {
+      "required": true
+    },
+    "AWS_PROFILE_PIC_BUCKET_NAME": {
+      "required": true
+    },
+    "STRIPE_PUBLIC_KEY": {
+      "required": true
+    },
+    "STRIPE_SECRET_KEY": {
+      "required": true
+    },
+    "AD_FREE_URL": {
+      "required": true
+    },
+    "SEND_GRID_KEY": {
+      "required": true
+    },
+    "MAILCHIMP_KEY": {
+      "required": true
+    },
+    "MAILCHIMP_LIST_ID": {
+      "required": true
+    },
+    "RECAPTCHA_SITE_KEY": {
+      "required": true
+    },
+    "RECAPTCHA_SECRET_KEY": {
+      "required": true
+    },
+    "EMAIL_FROM_ADDRESS": {
+      "required": true
+    }
   },
   "formation": {
   },

@@ -54,6 +54,7 @@ function load(req, res, next, id) {
 
 function get(req, res, next) {
   // Load ad free version of podcast episode if subscrbied:
+
   return res.json(getAdFreeSinglePostIfSubscribed(req.post.toObject(), req.fullUser, next));
 }
 
@@ -81,6 +82,13 @@ function get(req, res, next) {
  *         format: date-time
  *         required: false
  *         description: The date/time the episode was created after
+ *       - in: query
+ *         name: transcripts
+ *         type: boolean
+ *         required: false
+ *         description: |
+ *            Using true returns posts with a transcriptUrl field,
+ *            using false returns posts without
  *       - in: query
  *         name: type
  *         type: string
@@ -117,7 +125,9 @@ function list(req, res, next) {
     type = null,
     tags = null,
     categories = null,
-    search = null
+    search = null,
+    transcripts = null,
+    topic = null
   } = req.query;
 
   const query = {};
@@ -127,6 +137,8 @@ function list(req, res, next) {
   if (type) query.type = type;
   if (req.user) query.user = req.user;
   if (search) query.search = search;
+  if (transcripts) query.transcripts = transcripts;
+
 
   if (tags) {
     query.tags = tags.split(',');
@@ -146,6 +158,9 @@ function list(req, res, next) {
     query.categories = newTags;
   }
 
+  if (topic) {
+    query.topic = [topic];
+  }
   Post.list(query)
     .then(posts => res.json(getAdFreePostsIfSubscribed(posts, req.fullUser, next)))
     .catch(e => next(e));
@@ -176,48 +191,17 @@ function list(req, res, next) {
  */
 
 function recommendations(req, res) {
-  // const numberOfRecommendations = 10;
+  // Raccoon recommendations were removed, so we return empty list for now
   res.json([]);
-  /*
-  raccoon
-    .recommendFor(req.user._id.toString(), numberOfRecommendations)
-    .then((recommendationsFound) => {
-      const ids = recommendationsFound.map(rec =>
-          //eslint-disable-line
-          mongoose.Types.ObjectId(rec) //eslint-disable-line
-      ); //eslint-disable-line
-      return Post.find({ _id: { $in: ids } }).populate('thread').lean();
-    })
-    .then(posts =>
-      //eslint-disable-line
-      res.json(getAdFreePostsIfSubscribed(posts, req.fullUser, next)))
-    .catch((e) => {
-      next(e);
-    });
-    */
 }
 
 function upvote(req, res, next) {
-  /*
-  const userIdString = req.user._id.toString();
-  const postIdString = req.post._id.toString();
-  if (req.liked) {
-    // raccoon.liked(userIdString, postIdString);
-  } else if (req.unliked) {
-    // raccoon.unliked(userIdString, postIdString);
-  }
-  */
+  // Raccoon recommendations were removed, vote logic moved to vote controller
   next();
 }
 
 function downvote(req, res, next) {
-  /*
-  if (req.undisliked) {
-    // raccoon.undisliked(req.user._id.toString(), req.post._id.toString());
-  } else if (req.disliked) {
-    // raccoon.disliked(req.user._id.toString(), req.post._id.toString());
-  }
-  */
+  // Raccoon recommendations were removed, vote logic moved to vote controller
   next();
 }
 
